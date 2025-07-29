@@ -16,7 +16,8 @@ import {
   BarChartIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  HeartIcon
+  HeartIcon,
+  GearIcon
 } from '@radix-ui/react-icons'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
@@ -31,7 +32,9 @@ const menuItems = [
   { href: '/dashboard/health', label: 'Health', icon: HeartIcon },
   { href: '/dashboard/investments', label: 'Investments', icon: ComponentInstanceIcon },
   { href: '/dashboard/real-estate', label: 'Real Estate', icon: HomeIcon },
-  { href: '/dashboard/projects', label: 'Projects', icon: FileTextIcon },
+  { href: '/dashboard/assets', label: 'Assets', icon: GearIcon },
+  { href: '/dashboard/contracts', label: 'Contracts', icon: FileTextIcon },
+  { href: '/dashboard/projects', label: 'Projects', icon: ActivityLogIcon },
   { href: '/dashboard/persons', label: 'People', icon: PersonIcon },
   { href: '/dashboard/storage', label: 'Storage', icon: ArchiveIcon },
 ]

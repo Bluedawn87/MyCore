@@ -2,20 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Button, Card, Flex, Text, Heading, Badge, DropdownMenu, Tabs } from "@radix-ui/themes";
+import { Button, Card, Flex, Text, Heading, Badge, DropdownMenu } from "@radix-ui/themes";
 import { 
   PlusIcon, 
   ExternalLinkIcon, 
   DotsVerticalIcon, 
   Pencil1Icon, 
-  TrashIcon,
-  HomeIcon,
-  FileTextIcon,
-  CalendarIcon
+  TrashIcon
 } from "@radix-ui/react-icons";
 import { PropertyModal } from "@/components/real-estate/property-modal";
 import { PropertyDetailsModal } from "@/components/real-estate/property-details-modal";
-import { ContractModal } from "@/components/real-estate/contract-modal";
 
 interface Property {
   id: string;
@@ -52,47 +48,18 @@ interface PropertyImage {
   is_primary: boolean;
 }
 
-interface Contract {
-  id: string;
-  name: string;
-  contract_type: string;
-  provider_name: string | null;
-  property_id: string | null;
-  property?: Property;
-  company_id: string | null;
-  person_name: string | null;
-  start_date: string | null;
-  end_date: string | null;
-  renewal_date: string | null;
-  monthly_amount: number | null;
-  annual_amount: number | null;
-  contract_number: string | null;
-  portal_url: string | null;
-  auto_renewal: boolean;
-  reminder_days_before: number;
-  notes: string | null;
-}
 
 export default function RealEstatePage() {
-  const [activeTab, setActiveTab] = useState("properties");
   const [properties, setProperties] = useState<Property[]>([]);
-  const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPropertyModalOpen, setIsPropertyModalOpen] = useState(false);
-  const [isContractModalOpen, setIsContractModalOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
-  const [editingContract, setEditingContract] = useState<Contract | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
-    fetchData();
+    fetchProperties();
   }, []);
-
-  const fetchData = async () => {
-    await Promise.all([fetchProperties(), fetchContracts()]);
-    setLoading(false);
-  };
 
   const fetchProperties = async () => {
     try {
@@ -139,25 +106,11 @@ export default function RealEstatePage() {
       setProperties(processedData);
     } catch (error) {
       console.error("Error fetching properties:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchContracts = async () => {
-    try {
-      const { data: contractsData, error } = await supabase
-        .from("contracts")
-        .select(`
-          *,
-          property:properties(id, name, address, city, country)
-        `)
-        .order("renewal_date", { ascending: true });
-
-      if (error) throw error;
-      setContracts(contractsData || []);
-    } catch (error) {
-      console.error("Error fetching contracts:", error);
-    }
-  };
 
   const formatCurrency = (amount: number | null) => {
     if (!amount) return "N/A";
@@ -195,12 +148,6 @@ export default function RealEstatePage() {
     }
   };
 
-  const handleDeleteContract = async (contractId: string) => {
-    if (confirm("Are you sure you want to delete this contract?")) {
-      await supabase.from("contracts").delete().eq("id", contractId);
-      fetchContracts();
-    }
-  };
 
   if (loading) {
     return (
@@ -216,24 +163,11 @@ export default function RealEstatePage() {
         <Heading size="8">Real Estate</Heading>
       </Flex>
 
-      <Tabs.Root value={activeTab} onValueChange={setActiveTab}>
-        <Tabs.List>
-          <Tabs.Trigger value="properties">
-            <HomeIcon /> Properties
-          </Tabs.Trigger>
-          <Tabs.Trigger value="contracts">
-            <FileTextIcon /> Contracts
-          </Tabs.Trigger>
-        </Tabs.List>
-
-        <div className="mt-6">
-          <Tabs.Content value="properties">
-            <Flex justify="between" align="center" mb="4">
-              <Text size="5" weight="bold">Properties</Text>
-              <Button onClick={() => setIsPropertyModalOpen(true)}>
-                <PlusIcon /> Add Property
-              </Button>
-            </Flex>
+      <Flex justify="between" align="center" mb="4">
+        <Button onClick={() => setIsPropertyModalOpen(true)}>
+          <PlusIcon /> Add Property
+        </Button>
+      </Flex>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {properties.map((property) => (
@@ -386,99 +320,6 @@ export default function RealEstatePage() {
                 </Flex>
               </Card>
             )}
-          </Tabs.Content>
-
-          <Tabs.Content value="contracts">
-            <Flex justify="between" align="center" mb="4">
-              <Text size="5" weight="bold">Contracts</Text>
-              <Button onClick={() => setIsContractModalOpen(true)}>
-                <PlusIcon /> Add Contract
-              </Button>
-            </Flex>
-
-            <div className="space-y-4">
-              {contracts.map((contract) => (
-                <Card key={contract.id}>
-                  <Flex justify="between" align="center">
-                    <Flex direction="column" gap="2">
-                      <Flex align="center" gap="3">
-                        <Heading size="4">{contract.name}</Heading>
-                        <Badge>{contract.contract_type}</Badge>
-                        {contract.auto_renewal && (
-                          <Badge color="green" variant="soft">Auto-renewal</Badge>
-                        )}
-                      </Flex>
-                      <Text size="2" color="gray">
-                        {contract.provider_name} 
-                        {contract.property && ` • ${contract.property.name}`}
-                      </Text>
-                      <Flex gap="4">
-                        {contract.monthly_amount && (
-                          <Text size="2">
-                            <Text weight="bold">{formatCurrency(contract.monthly_amount)}</Text>/month
-                          </Text>
-                        )}
-                        {contract.renewal_date && (
-                          <Text size="2">
-                            Renewal: <Text weight="bold">{formatDate(contract.renewal_date)}</Text>
-                          </Text>
-                        )}
-                      </Flex>
-                    </Flex>
-                    <Flex gap="2" align="center">
-                      {contract.portal_url && (
-                        <a 
-                          href={contract.portal_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-blue-500 hover:text-blue-600"
-                        >
-                          <Text size="2">Portal</Text>
-                          <ExternalLinkIcon />
-                        </a>
-                      )}
-                      <DropdownMenu.Root>
-                        <DropdownMenu.Trigger>
-                          <Button variant="ghost" size="1">
-                            <DotsVerticalIcon />
-                          </Button>
-                        </DropdownMenu.Trigger>
-                        <DropdownMenu.Content>
-                          <DropdownMenu.Item
-                            onClick={() => setEditingContract(contract)}
-                          >
-                            <Pencil1Icon />
-                            Edit Contract
-                          </DropdownMenu.Item>
-                          <DropdownMenu.Separator />
-                          <DropdownMenu.Item
-                            color="red"
-                            onClick={() => handleDeleteContract(contract.id)}
-                          >
-                            <TrashIcon />
-                            Delete Contract
-                          </DropdownMenu.Item>
-                        </DropdownMenu.Content>
-                      </DropdownMenu.Root>
-                    </Flex>
-                  </Flex>
-                </Card>
-              ))}
-            </div>
-
-            {contracts.length === 0 && (
-              <Card>
-                <Flex direction="column" align="center" gap="3" className="py-8">
-                  <Text color="gray">No contracts yet</Text>
-                  <Button onClick={() => setIsContractModalOpen(true)}>
-                    <PlusIcon /> Add Your First Contract
-                  </Button>
-                </Flex>
-              </Card>
-            )}
-          </Tabs.Content>
-        </div>
-      </Tabs.Root>
 
       <PropertyModal
         open={isPropertyModalOpen || !!editingProperty}
@@ -498,24 +339,6 @@ export default function RealEstatePage() {
         }}
       />
 
-      <ContractModal
-        open={isContractModalOpen || !!editingContract}
-        onOpenChange={(open) => {
-          if (!open) {
-            setIsContractModalOpen(false);
-            setEditingContract(null);
-          } else if (!editingContract) {
-            setIsContractModalOpen(true);
-          }
-        }}
-        contract={editingContract}
-        properties={properties}
-        onSuccess={() => {
-          fetchContracts();
-          setIsContractModalOpen(false);
-          setEditingContract(null);
-        }}
-      />
 
       {selectedProperty && (
         <PropertyDetailsModal
@@ -524,7 +347,6 @@ export default function RealEstatePage() {
           onOpenChange={(open) => !open && setSelectedProperty(null)}
           onUpdate={() => {
             fetchProperties();
-            fetchContracts();
           }}
         />
       )}
