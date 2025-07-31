@@ -173,6 +173,7 @@ export function ContractDrawer({ open, onOpenChange, onSuccess, contract, proper
       property_id: "",
       company_id: "",
       person_id: "",
+      asset_id: "",
       start_date: "",
       end_date: "",
       renewal_date: "",

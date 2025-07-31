@@ -9,16 +9,13 @@ import {
   Heading,
   Badge,
   Button,
-  Table,
   Tabs,
-  Separator,
   Card
 } from "@radix-ui/themes";
 import {
   CalendarIcon,
   PersonIcon,
   ComponentInstanceIcon,
-  FileTextIcon,
   GearIcon,
   HomeIcon,
   ExternalLinkIcon,
@@ -26,7 +23,38 @@ import {
 } from "@radix-ui/react-icons";
 
 interface AssetDetailsModalProps {
-  asset: any;
+  asset: {
+    id: string;
+    name: string;
+    asset_type: string;
+    brand?: string | null;
+    model?: string | null;
+    year?: number | null;
+    serial_number?: string | null;
+    registration_number?: string | null;
+    purchase_date?: string | null;
+    purchase_price?: number | null;
+    current_value?: number | null;
+    description?: string | null;
+    notes?: string | null;
+    is_active: boolean;
+    asset_owners?: Array<{
+      id: string;
+      owner_type: string;
+      person_id?: string | null;
+      company_id?: string | null;
+      ownership_percentage: number;
+      person?: { name: string };
+      company?: { name: string };
+    }>;
+    property_assets?: Array<{
+      property: {
+        id: string;
+        name: string;
+        address: string;
+      };
+    }>;
+  };
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: () => void;
@@ -34,8 +62,27 @@ interface AssetDetailsModalProps {
 }
 
 export function AssetDetailsModal({ asset, open, onOpenChange, onEdit, onAddMaintenance }: AssetDetailsModalProps) {
-  const [contracts, setContracts] = useState<any[]>([]);
-  const [maintenanceLogs, setMaintenanceLogs] = useState<any[]>([]);
+  const [contracts, setContracts] = useState<Array<{
+    id: string;
+    name: string;
+    contract_type: string;
+    renewal_date?: string | null;
+    status?: string;
+    auto_renewal?: boolean;
+    provider_name?: string | null;
+    monthly_amount?: number | null;
+    portal_url?: string | null;
+  }>>([]);
+  const [maintenanceLogs, setMaintenanceLogs] = useState<Array<{
+    id: string;
+    maintenance_date: string;
+    maintenance_type: string;
+    description: string;
+    cost?: number | null;
+    performed_by?: string | null;
+    next_maintenance_date?: string | null;
+    notes?: string | null;
+  }>>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
@@ -328,7 +375,7 @@ export function AssetDetailsModal({ asset, open, onOpenChange, onEdit, onAddMain
                               {contract.auto_renewal && (
                                 <Badge color="green" variant="soft">Auto-renewal</Badge>
                               )}
-                              {getRenewalBadge(contract.renewal_date)}
+                              {getRenewalBadge(contract.renewal_date || null)}
                             </Flex>
                             <Text size="2" color="gray">
                               {contract.provider_name}

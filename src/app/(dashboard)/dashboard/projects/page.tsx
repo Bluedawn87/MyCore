@@ -9,14 +9,8 @@ import {
   Pencil1Icon, 
   TrashIcon,
   MagnifyingGlassIcon,
-  RocketIcon,
-  CheckCircledIcon,
-  CrossCircledIcon,
-  PauseIcon,
   ArrowRightIcon,
-  PersonIcon,
-  CalendarIcon,
-  ActivityLogIcon
+  PersonIcon
 } from "@radix-ui/react-icons";
 import { ProjectDrawer } from "@/components/projects/project-drawer";
 import { ProjectDetailsModal } from "@/components/projects/project-details-modal";

@@ -474,6 +474,7 @@ export function PropertyDetailsModal({
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {images.map((image) => (
                       <Card key={image.id} className="relative group">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img 
                           src={image.image_url} 
                           alt={image.caption || property.name}

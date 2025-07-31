@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Button, Card, Flex, Text, Heading, Badge, DropdownMenu, Tabs, TextField, SegmentedControl } from "@radix-ui/themes";
+import { Button, Card, Flex, Text, Heading, Badge, DropdownMenu, TextField, SegmentedControl } from "@radix-ui/themes";
 import { 
   PlusIcon, 
   DotsVerticalIcon, 
@@ -12,7 +12,8 @@ import {
   GearIcon,
   CalendarIcon,
   PersonIcon,
-  ComponentInstanceIcon
+  ComponentInstanceIcon,
+  FileTextIcon
 } from "@radix-ui/react-icons";
 import { AssetDrawer } from "@/components/assets/asset-drawer";
 import { MaintenanceModal } from "@/components/assets/maintenance-modal";
@@ -68,6 +69,7 @@ interface Contract {
 
 interface PropertyAsset {
   property: {
+    id: string;
     name: string;
     address: string;
   };
@@ -89,7 +91,7 @@ export default function AssetsPage() {
 
   useEffect(() => {
     fetchAssets();
-  }, []);
+  }, [assetTypeFilter]);
 
   const fetchAssets = async () => {
     try {

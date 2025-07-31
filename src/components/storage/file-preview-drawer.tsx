@@ -245,11 +245,14 @@ export function FilePreviewDrawer({
     switch (fileType) {
       case 'image':
         return (
-          <img 
-            src={previewUrl} 
-            alt={file.name}
-            className="max-w-full max-h-[400px] object-contain mx-auto rounded-md"
-          />
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src={previewUrl} 
+              alt={file.name}
+              className="max-w-full max-h-[400px] object-contain mx-auto rounded-md"
+            />
+          </>
         )
       
       case 'video':

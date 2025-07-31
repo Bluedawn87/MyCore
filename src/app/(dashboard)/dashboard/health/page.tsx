@@ -11,7 +11,6 @@ import {
   Badge,
   Tabs,
   Avatar,
-  Select,
   SegmentedControl
 } from '@radix-ui/themes'
 import { 

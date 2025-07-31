@@ -10,10 +10,8 @@ import {
   Pencil1Icon, 
   TrashIcon,
   MagnifyingGlassIcon,
-  CalendarIcon,
   PersonIcon,
-  HomeIcon,
-  ComponentInstanceIcon
+  HomeIcon
 } from "@radix-ui/react-icons";
 import { ContractDrawer } from "@/components/contracts/contract-drawer";
 
@@ -61,6 +59,7 @@ export default function ContractsPage() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {

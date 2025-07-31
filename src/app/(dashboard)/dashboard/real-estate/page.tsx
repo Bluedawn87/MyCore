@@ -182,6 +182,7 @@ export default function RealEstatePage() {
                         src={property.primary_image.image_url} 
                         alt={property.name}
                         className="h-full w-full object-cover"
+                        // eslint-disable-next-line @next/next/no-img-element
                       />
                     </div>
                   )}
