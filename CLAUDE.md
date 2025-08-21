@@ -42,6 +42,13 @@ MyCore is a comprehensive personal management system designed to centralize and 
 - `contracts`: Service contracts with renewal tracking
 - `contract_documents`: Contract-related documents
 
+### Finances Tables
+- `bank_accounts`: Bank account information (manual and connected)
+- `account_balances`: Time-series balance data with daily updates
+- `financial_transactions`: Transaction history from banks and manual entry
+- `gocardless_connections`: GoCardless API connection management
+- `financial_summaries`: Cached wealth calculations across all asset types
+
 ### Person Management
 - `persons`: Central table for individuals/organizations (with health fields)
 - `person_documents`: Identity documents, tax docs
@@ -59,6 +66,29 @@ MyCore is a comprehensive personal management system designed to centralize and 
 ### Utility Tables
 - `whitelist`: Email whitelist for authentication
 - Storage buckets: property-images, property-documents, person-documents, medical-records
+
+## Finances Module Architecture
+
+### GoCardless Integration
+- **API**: Bank Account Data API for European banks (2000+ institutions)
+- **Authentication**: OAuth flow with secure bank authorization
+- **Data Access**: Account details, balances, transactions (up to 24 months)
+- **Rate Limits**: 4 API calls per day per account (automatically managed)
+- **Supported Countries**: UK, Germany, France, Spain, Italy, Netherlands, Belgium, etc.
+
+### Financial Data Flow
+1. **Manual Entry**: Users can add accounts and update balances manually
+2. **Bank Connection**: OAuth connection via GoCardless for automatic updates
+3. **Daily Sync**: pg_cron job updates balances and transactions at 6 AM UTC
+4. **Wealth Calculation**: Automatic aggregation across all asset types
+5. **Dashboard Display**: Real-time financial overview with charts and analytics
+
+### Component Architecture
+- **Page**: `/dashboard/finances` with 4 tabs (Overview, Dashboard, Accounts, Connections)
+- **Modals**: Bank account management, bank connection flow, account details
+- **Charts**: Using Recharts for financial visualizations
+- **API Layer**: 7 REST endpoints for complete functionality
+- **Service Layer**: GoCardless client with database integration
 
 ## Code Standards
 
@@ -125,6 +155,29 @@ const { data: uploadData, error } = await supabase.storage
 const { data: { publicUrl } } = supabase.storage
   .from('bucket-name')
   .getPublicUrl(fileName);
+```
+
+### Financial Data Patterns
+```typescript
+// Fetch accounts with latest balances
+const { data } = await supabase
+  .from("bank_accounts")
+  .select(`
+    *,
+    account_balances(balance, balance_date, currency)
+  `)
+  .eq('is_active', true)
+  .order("created_at", { ascending: false });
+
+// Calculate financial summary
+await supabase.rpc('calculate_financial_summary', {
+  target_user_id: user.id,
+  target_date: new Date().toISOString().split('T')[0],
+});
+
+// GoCardless service usage
+const gocardlessService = new GoCardlessService(supabase);
+const result = await gocardlessService.syncAccountData(user.id);
 ```
 
 ## Security Considerations
@@ -215,6 +268,16 @@ npm run whitelist:list
 
 # Storage Buckets Setup
 npm run setup:buckets
+
+# Finances Module
+# Manual sync all financial data
+curl -X POST http://localhost:3001/api/finances/sync
+
+# Check cron job status
+curl http://localhost:3001/api/finances/cron-status
+
+# Manual wealth calculation
+SELECT calculate_financial_summary(auth.uid(), CURRENT_DATE);
 ```
 
 ## Important Notes

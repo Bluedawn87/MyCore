@@ -17,6 +17,17 @@ MyCore is a comprehensive personal management system built with Next.js, TypeScr
 - Date range filtering for historical data
 - External links to investment portals (frontend and portal URLs)
 
+### 🏦 Finances
+- **Bank Account Management**: Manual and automated account tracking
+- **GoCardless Integration**: Connect to 2000+ European banks securely
+- **Automated Sync**: Daily balance and transaction updates via pg_cron
+- **Wealth Dashboard**: Comprehensive financial overview with interactive charts
+- **Multi-Asset Aggregation**: Total net worth across bank accounts, investments, real estate
+- **Transaction History**: Import and track financial transactions
+- **Financial Analytics**: Income/expense analysis, spending trends, account comparisons
+- **Currency Support**: Multi-currency account management
+- **Security**: OAuth bank connections, encrypted credentials, RLS protection
+
 ### 🏢 Real Estate
 - Manage owned and leased properties
 - Track properties across different countries
@@ -77,6 +88,16 @@ Create or update the `.env.local` file with your Supabase credentials:
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# GoCardless Bank Account Data API (for Finances module)
+GOCARDLESS_SECRET_ID=your_secret_id
+GOCARDLESS_SECRET_KEY=your_secret_key
+
+# Cron job secret for automated sync
+CRON_SECRET=your_secure_cron_secret
+
+# Base URL for callbacks
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
 ```
 
 Get your keys from:
@@ -125,6 +146,17 @@ Visit http://localhost:3000
 3. Create accounts using the whitelisted emails
 4. Sign in at http://localhost:3000/login
 
+### 6. Finances Module Setup (Optional)
+
+To enable bank integrations and automated financial tracking:
+
+1. **Database Migration**: Run `migrations/finances_tables.sql` in Supabase SQL Editor
+2. **GoCardless Setup**: Add GoCardless credentials to `.env.local`
+3. **pg_cron Setup**: Run `migrations/pg_cron_setup.sql` for automated daily sync
+4. **Test Connection**: Visit `/dashboard/finances` and connect a European bank
+
+See `FINANCES_SETUP.md` for detailed setup instructions.
+
 ## Project Structure
 
 ```
@@ -136,6 +168,7 @@ core/
 │   │   │   ├── dashboard/
 │   │   │   │   ├── investments/
 │   │   │   │   ├── real-estate/
+│   │   │   │   ├── finances/
 │   │   │   │   ├── health/
 │   │   │   │   ├── persons/
 │   │   │   │   └── storage/
@@ -145,6 +178,7 @@ core/
 │   │   ├── dashboard/      # Dashboard components
 │   │   ├── investments/    # Investment components
 │   │   ├── real-estate/    # Real estate components
+│   │   ├── finances/       # Financial management components
 │   │   ├── health/         # Health tracking components
 │   │   ├── persons/        # Person management components
 │   │   └── storage/        # Storage components
@@ -172,6 +206,11 @@ core/
 - `medical_records` - Medical document storage
 - `health_goals` - Health goal tracking
 - `health_reminders` - Health reminder system
+- `bank_accounts` - Bank account information (manual and connected)
+- `account_balances` - Time-series balance data
+- `financial_transactions` - Transaction history
+- `gocardless_connections` - Bank connection management
+- `financial_summaries` - Wealth calculations across all asset types
 
 ## Security
 
