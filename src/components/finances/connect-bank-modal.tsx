@@ -26,62 +26,79 @@ export function ConnectBankModal({
   onOpenChange,
   onSuccess,
 }: ConnectBankModalProps) {
-  const [step, setStep] = useState<"country" | "institution" | "connecting">("country");
+  const [step, setStep] = useState<"institution" | "connecting">("institution");
   const [loading, setLoading] = useState(false);
-  const [countries] = useState([
-    { code: "GB", name: "United Kingdom" },
-    { code: "DE", name: "Germany" },
-    { code: "FR", name: "France" },
-    { code: "ES", name: "Spain" },
-    { code: "IT", name: "Italy" },
-    { code: "NL", name: "Netherlands" },
-    { code: "BE", name: "Belgium" },
-    { code: "AT", name: "Austria" },
-    { code: "IE", name: "Ireland" },
-    { code: "FI", name: "Finland" },
-    { code: "EE", name: "Estonia" },
-    { code: "LV", name: "Latvia" },
-    { code: "LT", name: "Lithuania" },
-  ]);
-  const [selectedCountry, setSelectedCountry] = useState("GB");
-  const [institutions, setInstitutions] = useState<GoCardlessInstitution[]>([]);
+  const [allInstitutions, setAllInstitutions] = useState<(GoCardlessInstitution & { country: string; countryName: string })[]>([]);
   const [selectedInstitution, setSelectedInstitution] = useState<GoCardlessInstitution | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [countryFilter, setCountryFilter] = useState<string>("ALL");
   const [connectionStatus, setConnectionStatus] = useState<{
     status: string;
     message: string;
   } | null>(null);
 
   useEffect(() => {
-    if (step === "institution") {
-      fetchInstitutions();
+    if (open && step === "institution" && allInstitutions.length === 0) {
+      fetchAllInstitutions();
     }
-  }, [step, selectedCountry]);
+  }, [open, step]);
 
   useEffect(() => {
     if (!open) {
       // Reset modal state when closed
-      setStep("country");
+      setStep("institution");
       setSelectedInstitution(null);
       setSearchTerm("");
+      setCountryFilter("ALL");
       setConnectionStatus(null);
     }
   }, [open]);
 
-  const fetchInstitutions = async () => {
+  const getCountryName = (code: string): string => {
+    const countryNames: Record<string, string> = {
+      'GB': 'United Kingdom', 'DE': 'Germany', 'FR': 'France', 'ES': 'Spain',
+      'IT': 'Italy', 'NL': 'Netherlands', 'BE': 'Belgium', 'AT': 'Austria',
+      'IE': 'Ireland', 'FI': 'Finland', 'EE': 'Estonia', 'LV': 'Latvia',
+      'LT': 'Lithuania', 'PL': 'Poland', 'PT': 'Portugal', 'SE': 'Sweden',
+      'DK': 'Denmark', 'NO': 'Norway'
+    };
+    return countryNames[code] || code;
+  };
+
+  const fetchAllInstitutions = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/finances/institutions?country=${selectedCountry}`);
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch institutions');
-      }
+      // Fetch institutions from all major European countries
+      const countries = ['GB', 'DE', 'FR', 'ES', 'IT', 'NL', 'BE', 'AT', 'IE', 'FI', 'EE', 'LV', 'LT', 'PL', 'PT', 'SE', 'DK', 'NO'];
+      const institutionPromises = countries.map(async (country) => {
+        try {
+          const response = await fetch(`/api/finances/institutions?country=${country}`);
+          if (response.ok) {
+            const data = await response.json();
+            return (data.institutions || []).map((inst: GoCardlessInstitution) => ({
+              ...inst,
+              country,
+              countryName: getCountryName(country)
+            }));
+          }
+          return [];
+        } catch (error) {
+          console.warn(`Failed to fetch institutions for ${country}:`, error);
+          return [];
+        }
+      });
+
+      const allResults = await Promise.all(institutionPromises);
+      const combinedInstitutions = allResults.flat();
       
-      const data = await response.json();
-      setInstitutions(data.institutions || []);
+      // Sort by name for better searchability
+      combinedInstitutions.sort((a, b) => a.name.localeCompare(b.name));
+      
+      setAllInstitutions(combinedInstitutions);
     } catch (error) {
       console.error("Error fetching institutions:", error);
-      setInstitutions([]);
+      setAllInstitutions([]);
     } finally {
       setLoading(false);
     }
@@ -101,7 +118,7 @@ export function ConnectBankModal({
         body: JSON.stringify({
           institutionId: selectedInstitution.id,
           institutionName: selectedInstitution.name,
-          countryCode: selectedCountry,
+          countryCode: (selectedInstitution as any).country,
         }),
       });
 
@@ -201,61 +218,51 @@ export function ConnectBankModal({
     }
   };
 
-  const filteredInstitutions = institutions.filter(institution =>
-    institution.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter institutions by search term and country
+  const filteredInstitutions = allInstitutions.filter(institution => {
+    const matchesSearch = institution.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCountry = countryFilter === "ALL" || institution.country === countryFilter;
+    return matchesSearch && matchesCountry;
+  });
 
-  const renderCountrySelection = () => (
-    <div className="space-y-4">
-      <Text size="3">Select your country to see available banks:</Text>
-      
-      <Select.Root value={selectedCountry} onValueChange={setSelectedCountry}>
-        <Select.Trigger />
-        <Select.Content>
-          {countries.map((country) => (
-            <Select.Item key={country.code} value={country.code}>
-              {country.name}
-            </Select.Item>
-          ))}
-        </Select.Content>
-      </Select.Root>
-
-      <Flex justify="end" gap="3" mt="6">
-        <Dialog.Close>
-          <Button variant="outline">Cancel</Button>
-        </Dialog.Close>
-        <Button onClick={() => setStep("institution")}>
-          Next
-        </Button>
-      </Flex>
-    </div>
-  );
+  // Get list of available countries for filter
+  const availableCountries = ["ALL", ...Array.from(new Set(allInstitutions.map(inst => inst.country)))].sort();
 
   const renderInstitutionSelection = () => (
     <div className="space-y-4">
-      <Flex justify="between" align="center">
-        <Text size="3">Choose your bank:</Text>
-        <Button variant="ghost" size="1" onClick={() => setStep("country")}>
-          ← Back
-        </Button>
-      </Flex>
+      <Text size="3">Choose your bank from any European country:</Text>
 
-      <TextField.Root
-        placeholder="Search for your bank..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-      />
+      {/* Search and Filter Controls */}
+      <div className="space-y-3">
+        <TextField.Root
+          placeholder="Search for your bank (e.g., N26, Revolut, Chase, HSBC)..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        
+        <Select.Root value={countryFilter} onValueChange={setCountryFilter}>
+          <Select.Trigger placeholder="Filter by country (optional)" />
+          <Select.Content>
+            <Select.Item value="ALL">🌍 All Countries</Select.Item>
+            {availableCountries.slice(1).map((country) => (
+              <Select.Item key={country} value={country}>
+                {getCountryName(country)}
+              </Select.Item>
+            ))}
+          </Select.Content>
+        </Select.Root>
+      </div>
 
       {loading ? (
         <Flex justify="center" align="center" className="py-8">
           <ReloadIcon className="animate-spin" />
-          <Text ml="2">Loading banks...</Text>
+          <Text ml="2">Loading banks from all countries...</Text>
         </Flex>
       ) : (
         <div className="max-h-96 overflow-y-auto space-y-2">
           {filteredInstitutions.map((institution) => (
             <Card
-              key={institution.id}
+              key={`${institution.country}-${institution.id}`}
               className={`cursor-pointer transition-colors ${
                 selectedInstitution?.id === institution.id
                   ? "ring-2 ring-blue-500 bg-blue-50"
@@ -274,18 +281,15 @@ export function ConnectBankModal({
                   )}
                   <div>
                     <Text weight="medium">{institution.name}</Text>
-                    {institution.bic && (
-                      <Text size="2" color="gray">{institution.bic}</Text>
-                    )}
+                    <Text size="2" color="gray">
+                      {institution.countryName}
+                      {institution.bic && ` • ${institution.bic}`}
+                    </Text>
                   </div>
                 </Flex>
-                <Flex align="center" gap="2">
-                  {institution.countries.map(country => (
-                    <Badge key={country} size="1" variant="soft">
-                      {country}
-                    </Badge>
-                  ))}
-                </Flex>
+                <Badge size="2" variant="soft">
+                  {institution.country}
+                </Badge>
               </Flex>
             </Card>
           ))}
@@ -294,7 +298,13 @@ export function ConnectBankModal({
 
       {!loading && filteredInstitutions.length === 0 && (
         <Flex justify="center" align="center" className="py-8">
-          <Text color="gray">No banks found for "{searchTerm}"</Text>
+          <Text color="gray">
+            No banks found{searchTerm && ` for "${searchTerm}"`}
+            {countryFilter !== "ALL" && ` in ${getCountryName(countryFilter)}`}
+          </Text>
+          <Text size="2" color="gray" mt="2">
+            Try searching by bank name or selecting a different country
+          </Text>
         </Flex>
       )}
 
@@ -346,7 +356,7 @@ export function ConnectBankModal({
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Content size="3" maxWidth="600px">
+      <Dialog.Content size="3" maxWidth="700px">
         <Dialog.Title>
           <Flex justify="between" align="center">
             <Heading size="6">Connect Bank Account</Heading>
@@ -359,7 +369,6 @@ export function ConnectBankModal({
         </Dialog.Title>
 
         <div className="mt-4">
-          {step === "country" && renderCountrySelection()}
           {step === "institution" && renderInstitutionSelection()}
           {step === "connecting" && renderConnecting()}
         </div>
